@@ -8,6 +8,9 @@ import cv2
 import neoapi
 import socket, cv2, pickle, struct, imutils
 
+
+exposure_time = 20000
+
 # get images, display and store stream (opencv_cap)
 result = 0
 try:
@@ -24,7 +27,7 @@ try:
         print('no supported pixelformat')
         sys.exit(0)
 
-    camera.f.ExposureTime.Set(20000)
+    camera.f.ExposureTime.Set(exposure_time)
     camera.f.AcquisitionFrameRateEnable.value = True
     camera.f.AcquisitionFrameRate.value = 60
 
@@ -67,6 +70,16 @@ try:
                         continue
 
                     frame = camera.GetImage().GetNPArray()
+                    # if frame is too bright, reduce exposure time
+                    if frame.mean() > 200:
+                        exposure_time -= 1000
+                        camera.f.ExposureTime.Set(exposure_time)
+                        print('exposure time reduced to: ', exposure_time)
+                    # if frame is too dark, increase exposure time
+                    elif frame.mean() < 50:
+                        exposure_time += 1000
+                        camera.f.ExposureTime.Set(exposure_time)
+                        print('exposure time increased to: ', exposure_time)
                     # rotate 90 degrees
                     frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
                     frame = imutils.resize(frame, height=720)
