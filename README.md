@@ -1,1 +1,3 @@
-# viva_la_convolution
+# Viva La Convolution
+
+Hackathon DataVenture 2023
