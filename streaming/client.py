@@ -33,9 +33,9 @@ class RemoteCamera:
         self.client_socket.close()
         self.connected = False
 
-    def get_frame(self) -> Generator[np.ndarray, None, None]:
+    def get_frame(self) -> np.ndarray:
         """
-        Generator that yields the frames.
+        fetches a frame from the camera
         :return: Frame
         :return:
         """
@@ -57,7 +57,7 @@ class RemoteCamera:
             data += self.client_socket.recv(4 * 1024)
         frame_data = data[:msg_size]
         data = data[msg_size:]
-        yield pickle.loads(frame_data)
+        return pickle.loads(frame_data)
 
 
 if __name__ == "__main__":
