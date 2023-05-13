@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 2
+names: ['Good', 'Not Good']
+
+roboflow:
+  workspace: maxime-vaillant-adj1n
+  project: bottle-cap-hackathon
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/maxime-vaillant-adj1n/bottle-cap-hackathon/dataset/1
