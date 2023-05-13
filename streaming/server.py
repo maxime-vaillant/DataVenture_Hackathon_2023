@@ -70,14 +70,15 @@ try:
                         continue
 
                     frame = camera.GetImage().GetNPArray()
+                    center = frame[frame.shape[0]//4:frame.shape[0]//4*3, frame.shape[1]//4:frame.shape[1]//4*3]
                     # if frame is too bright, reduce exposure time
-                    if frame.mean() > 200:
-                        exposure_time -= 1000
+                    if center.mean() > 120:
+                        exposure_time /= 1.5
                         camera.f.ExposureTime.Set(exposure_time)
                         print('exposure time reduced to: ', exposure_time)
                     # if frame is too dark, increase exposure time
-                    elif frame.mean() < 50:
-                        exposure_time += 1000
+                    elif center.mean() < 100:
+                        exposure_time *= 1.5
                         camera.f.ExposureTime.Set(exposure_time)
                         print('exposure time increased to: ', exposure_time)
                     # rotate 90 degrees
