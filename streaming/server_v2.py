@@ -1,6 +1,7 @@
 import pickle
 import struct
-from socket import socket
+import socket
+import sys
 from threading import Thread
 
 import cv2
@@ -14,7 +15,7 @@ running = True
 def stream_video_thread():
     global image
     exposure_time = 20000
-
+    print('starting stream video thread')
     try:
         camera = neoapi.Cam()
         camera.Connect()
@@ -34,7 +35,6 @@ def stream_video_thread():
             frame = camera.GetImage().GetNPArray()
             frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
             frame = imutils.resize(frame, height=720)
-
             image = frame
 
     except Exception as err:
@@ -51,7 +51,7 @@ def handle_client_thread(client_socket):
 
         print(f"got message from client: {str(message)}")
 
-        if message == b'send_image':
+        if message == b'send_image' and image is not None:
             print('sending image')
 
             pckl = pickle.dumps(image)
@@ -77,6 +77,9 @@ def socket_server_thread():
     port = 9999
     socket_address = ("0.0.0.0", port)
 
+    # Socket Bind
+    server_socket.bind(socket_address)
+
     # Socket Listen
     server_socket.listen(5)
     print("LISTENING AT:", socket_address)
@@ -86,12 +89,12 @@ def socket_server_thread():
         print('GOT CONNECTION FROM:', addr)
 
         client_thread = Thread(target=handle_client_thread, args=[client_socket])
-        client_thread.run()
+        client_thread.start()
 
 
 if __name__ == '__main__':
     stream_thread = Thread(target=stream_video_thread, args=[])
-    stream_thread.run()
+    stream_thread.start()
 
     try:
         socket_server_thread()

@@ -7,7 +7,7 @@ import sys
 import cv2
 import neoapi
 import socket, cv2, pickle, struct, imutils
-from simple_pid import PID
+# from simple_pid import PID
 
 
 exposure_time = 20000
@@ -71,7 +71,7 @@ try:
                         continue
 
                     frame = camera.GetImage().GetNPArray()
-                    center = frame[frame.shape[0]//4:frame.shape[0]//4*3, frame.shape[1]//4:frame.shape[1]//4*3]
+                    center = frame[frame.shape[0]//3:frame.shape[0]//3*2, frame.shape[1]//3:frame.shape[1]//3*2]
                     # use pid to regulate exposure time
                     # exposure_time = round(pid(center.mean()))
                     exposure_time = exposure_time + (100 - center.mean()) * 400
