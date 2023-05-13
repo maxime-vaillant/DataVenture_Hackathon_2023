@@ -1,5 +1,6 @@
 # MISC
 .idea
+.DS_Store
 
 # Dataset
 /dataset
