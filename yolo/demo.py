@@ -56,17 +56,6 @@ CLASSES_COLORS = {
     4: (0, 255, 255),
 }
 
-CLASSES_NAME = {
-    0: "Broken",
-    1: "Gap",
-    2: "Good",
-    3: "Missing",
-    4: "No Cap"
-}
-
-COUNTER = {i: 0 for i in range(5)}
-
-
 def update_label(queue_label):
     max_label = max(queue_label, key=queue_label.count)
 
@@ -79,6 +68,9 @@ def real_time_inference_v8():
     rc.connect()
 
     counter = 0
+
+    COUNTER = {i: 0 for i in range(len(model.names))}
+
     objects = []
     while True:
         img = rc.get_frame()
@@ -136,6 +128,7 @@ def real_time_inference_v8():
                     add_to_queue(obj["label_queue"], label)
                     obj["label"] = update_label(obj["label_queue"])
                     break
+
             # if the object is not in the list
             if not obj_found:
                 # add it
@@ -178,14 +171,18 @@ def real_time_inference_v8():
                 2
             )
 
+        text = ''
+        for i in range(len(model.names)):
+            text += f"{model.names[i]}: {COUNTER[i]} {'-' if i != len(model.names) - 1 else ''} "
+
         cv2.putText(
             res_plotted,
-            f"{COUNTER[0]} - {COUNTER[1]} - {COUNTER[2]} - {COUNTER[3]} - {COUNTER[4]}",
+            text,
             (30, 30),
             cv2.FONT_HERSHEY_SIMPLEX,
-            0.9,
+            0.4,
             (0, 255, 0),
-            2
+            1
         )
 
         cv2.imshow("video stream", res_plotted)
