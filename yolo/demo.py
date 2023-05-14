@@ -27,7 +27,7 @@ def real_time_inference_v8():
 
 def real_time_inference():
     # load model checkpoints/yolo_nas_binary/ckpt_best.pth
-    model = models.get(Models.YOLO_NAS_S, checkpoint_path='/Users/pierreadorni/Downloads/ckpt_best.pth', num_classes=2)
+    model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
     # model = YOLO('/Users/pierreadorni/Downloads/best.pt')
     rc = RemoteCamera("192.168.10.125", 9999)
     rc.connect()

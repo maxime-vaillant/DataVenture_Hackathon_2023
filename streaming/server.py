@@ -7,11 +7,11 @@ import sys
 import cv2
 import neoapi
 import socket, cv2, pickle, struct, imutils
-from simple_pid import PID
+# from simple_pid import PID
 
 
 exposure_time = 20000
-pid = PID(1, 0.1, 0.05, setpoint=1)
+# pid = PID(3500, 100, 0, setpoint=100)
 # get images, display and store stream (opencv_cap)
 result = 0
 try:
@@ -71,9 +71,13 @@ try:
                         continue
 
                     frame = camera.GetImage().GetNPArray()
-                    center = frame[frame.shape[0]//4:frame.shape[0]//4*3, frame.shape[1]//4:frame.shape[1]//4*3]
+                    center = frame[frame.shape[0]//3:frame.shape[0]//3*2, frame.shape[1]//3:frame.shape[1]//3*2]
                     # use pid to regulate exposure time
-                    exposure_time = pid(center.mean())
+                    # exposure_time = round(pid(center.mean()))
+                    exposure_time = exposure_time + (100 - center.mean()) * 400
+                    # exposure_time = exposure_time * (10 ** ((100 - center.mean()) / 100))
+                    camera.f.ExposureTime.Set(exposure_time)
+                    print(exposure_time, center.mean())
                     # # if frame is too bright, reduce exposure time
                     # if center.mean() > 120:
                     #     exposure_time /= 1.5
