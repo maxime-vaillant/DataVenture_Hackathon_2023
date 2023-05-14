@@ -5,11 +5,30 @@ from streaming.client import RemoteCamera
 from matplotlib import pyplot as plt
 import cv2
 import numpy as np
+from ultralytics import YOLO
+
+
+def real_time_inference_v8():
+    model = YOLO('/Users/pierreadorni/Downloads/best.onnx')
+    rc = RemoteCamera("192.168.10.125", 9999)
+    rc.connect()
+
+    while True:
+        img = rc.get_frame()
+        img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
+
+        res = model(img)
+        res_plotted = res[0].plot()
+        cv2.imshow("video stream", res_plotted)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
 
 def real_time_inference():
     # load model checkpoints/yolo_nas_binary/ckpt_best.pth
     model = models.get(Models.YOLO_NAS_S, checkpoint_path='/Users/pierreadorni/Downloads/ckpt_best.pth', num_classes=2)
+    # model = YOLO('/Users/pierreadorni/Downloads/best.pt')
     rc = RemoteCamera("192.168.10.125", 9999)
     rc.connect()
 
@@ -36,4 +55,4 @@ def real_time_inference():
 
 
 if __name__ == '__main__':
-    real_time_inference()
+    real_time_inference_v8()
