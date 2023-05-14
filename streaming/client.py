@@ -3,7 +3,6 @@ import socket, cv2, pickle, struct
 import numpy as np
 from typing import Generator
 
-from vidgear.gears import NetGear
 
 
 class RemoteCamera:
