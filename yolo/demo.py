@@ -1,7 +1,9 @@
+import time
+
 import numpy as np
 from super_gradients.training import models
 from super_gradients.common.object_names import Models
-from streaming.client import RemoteCamera
+from streaming.client import RemoteCamera2 as RemoteCamera
 from matplotlib import pyplot as plt
 import cv2
 import numpy as np
@@ -14,10 +16,16 @@ def real_time_inference_v8():
     rc.connect()
 
     while True:
+        t0 = time.time()
         img = rc.get_frame()
-        img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
+        t1 = time.time()
+        print(f"Frame received in {t1 - t0} seconds")
+        # img = np.repeat(img[:, :, np.newaxis], 3, axis=2)
 
-        res = model(img)
+        if img is None:
+            continue
+
+        res = model(img, device="mps")
         res_plotted = res[0].plot()
         cv2.imshow("video stream", res_plotted)
 
@@ -27,8 +35,7 @@ def real_time_inference_v8():
 
 def real_time_inference():
     # load model checkpoints/yolo_nas_binary/ckpt_best.pth
-    model = models.get(Models.YOLO_NAS_S, pretrained_weights="coco")
-    # model = YOLO('/Users/pierreadorni/Downloads/best.pt')
+    model = models.get(Models.YOLO_NAS_S, checkpoint_path='/Users/pierreadorni/Downloads/ckpt_best.pth', num_classes=2)
     rc = RemoteCamera("192.168.10.125", 9999)
     rc.connect()
 
