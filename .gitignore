@@ -3,4 +3,14 @@
 .DS_Store
 __pycache__
 
-models/
+# Dataset
+datasets/**/*.jpg
+datasets/**/*.txt
+
+# Models and runs
+yolo_train/*.pt
+yolo_train/checkpoints_nas/*
+yolo_train/checkpoints_v8/*
+
+# Config
+config.py

@@ -1,51 +1,79 @@
-#!/usr/bin/env python3
+import pickle
+import socket
+import struct
+from threading import Thread
 
-''' A simple Program for grabbing video from Baumer camera and converting it to opencv stream.
-'''
-
-import sys
 import cv2
+import imutils
 import neoapi
-import socket, cv2, pickle, struct, imutils
-# from simple_pid import PID
+
+from config import SERVER_PORT
+
+image = None
+running = True
 
 
-exposure_time = 20000
-# pid = PID(3500, 100, 0, setpoint=100)
-# get images, display and store stream (opencv_cap)
-result = 0
-try:
-    camera = neoapi.Cam()
-    camera.Connect()
+def stream_video_thread():
+    global image
+    # exposure_time = 20000
+    print('Starting stream video thread')
 
-    isColor = True
-    if camera.f.PixelFormat.GetEnumValueList().IsReadable('BGR8'):
-        camera.f.PixelFormat.SetString('BGR8')
-    elif camera.f.PixelFormat.GetEnumValueList().IsReadable('Mono8'):
-        camera.f.PixelFormat.SetString('Mono8')
-        isColor = False
-    else:
-        print('no supported pixelformat')
-        sys.exit(0)
+    try:
+        camera = neoapi.Cam()
+        camera.Connect()
 
-    camera.f.ExposureTime.Set(exposure_time)
-    camera.f.AcquisitionFrameRateEnable.value = True
-    camera.f.AcquisitionFrameRate.value = 60
+        if camera.f.PixelFormat.GetEnumValueList().IsReadable('BGR8'):
+            camera.f.PixelFormat.SetString('BGR8')
+        elif camera.f.PixelFormat.GetEnumValueList().IsReadable('Mono8'):
+            camera.f.PixelFormat.SetString('Mono8')
+        else:
+            print('No Supported PixelFormat')
 
-    # Define the codec and create VideoWriter object.The output is stored in 'outpy.avi' file.
-    # Define the fps to be equal to 10. Also frame size is passed.
-    # video = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc(*'MJPG'), 10,
-    # video = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc(*'DIVX'), 10,
-    # video = cv2.VideoWriter('outpy.avi',cv2.VideoWriter_fourcc(*'XVID'), 10,
-    #                         (camera.f.Width.value, camera.f.Height.value), isColor)
+        # camera.f.ExposureTime.Set(exposure_time)
+        camera.f.ExposureAuto.Set('Continuous')
+        camera.f.AcquisitionFrameRateEnable.value = True
+        camera.f.AcquisitionFrameRate.value = 60
 
-    # Socket Create
+        while running:
+            frame = camera.GetImage().GetNPArray()
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            frame = imutils.resize(frame, height=720)
+            image = frame
+
+    except Exception as err:
+        print(err)
+
+
+def handle_client_thread(client_socket):
+    global image
+
+    message = b'up_to_date'
+
+    while message != b'' and running:
+        message = client_socket.recv(1024)
+
+        if message == b'send_image' and image is not None:
+            pckl = pickle.dumps(image)
+
+            message = struct.pack("Q", len(pckl)) + pckl
+            client_socket.sendall(message)
+
+        if cv2.waitKey(1) == '13':
+            client_socket.close()
+
+    client_socket.close()
+
+
+def socket_server_thread():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
     host_name = socket.gethostname()
     host_ip = socket.gethostbyname(host_name)
+
     print('HOST IP:', host_ip)
-    port = 9999
+
+    port = SERVER_PORT
     socket_address = ("0.0.0.0", port)
 
     # Socket Bind
@@ -55,56 +83,19 @@ try:
     server_socket.listen(5)
     print("LISTENING AT:", socket_address)
 
-    # Socket Accept
     while True:
         client_socket, addr = server_socket.accept()
         print('GOT CONNECTION FROM:', addr)
-        try:
-            if client_socket:
-                message = b'bjr'
-                while message != b'':
-                    message = client_socket.recv(1024)
-                    print("got message from client: "+str(message))
-                    if message == b'send_image':
-                        print('sending image')
-                    else:
-                        continue
 
-                    frame = camera.GetImage().GetNPArray()
-                    center = frame[frame.shape[0]//3:frame.shape[0]//3*2, frame.shape[1]//3:frame.shape[1]//3*2]
-                    # use pid to regulate exposure time
-                    # exposure_time = round(pid(center.mean()))
-                    exposure_time = exposure_time + (100 - center.mean()) * 400
-                    # exposure_time = exposure_time * (10 ** ((100 - center.mean()) / 100))
-                    camera.f.ExposureTime.Set(exposure_time)
-                    print(exposure_time, center.mean())
-                    # # if frame is too bright, reduce exposure time
-                    # if center.mean() > 120:
-                    #     exposure_time /= 1.5
-                    #     camera.f.ExposureTime.Set(exposure_time)
-                    #     print('exposure time reduced to: ', exposure_time)
-                    # # if frame is too dark, increase exposure time
-                    # elif center.mean() < 100:
-                    #     exposure_time *= 1.5
-                    #     camera.f.ExposureTime.Set(exposure_time)
-                    #     print('exposure time increased to: ', exposure_time)
-                    # rotate 90 degrees
-                    frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-                    frame = imutils.resize(frame, height=720)
-                    a = pickle.dumps(frame)
-                    message = struct.pack("Q", len(a)) + a
-                    client_socket.sendall(message)
-
-                    cv2.imshow('TRANSMITTING VIDEO', frame)
-                    if cv2.waitKey(1) == '13':
-                        client_socket.close()
-        except Exception as e:
-            print(e)
-            continue
+        client_thread = Thread(target=handle_client_thread, args=[client_socket])
+        client_thread.start()
 
 
-except (neoapi.NeoException, Exception) as exc:
-    print('error: ', exc)
-    result = 1
+if __name__ == '__main__':
+    stream_thread = Thread(target=stream_video_thread, args=[])
+    stream_thread.start()
 
-sys.exit(result)
+    try:
+        socket_server_thread()
+    except KeyboardInterrupt:
+        running = False
